@@ -1,0 +1,85 @@
+---
+- name: AWX Installation
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: yes
+
+  tasks:
+
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install required system packages for Docker
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - software-properties-common
+          - virtualenv
+          - python3-setuptools
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+    - name: Start Docker
+      shell: |
+        systemctl enable docker
+        systemctl status docker
+      register: docker_status
+
+    - name: Disable swap
+      shell: /usr/sbin/swapoff -a
+
+    - name: Download minikube
+      get_url:
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /var/tmp/minikube-linux-amd64
+        
+    - name: Install minikube
+      shell: |
+        install minikube-linux-amd64 /usr/local/bin/minikube
+
+    - name: Start a minikube instance
+      shell: |
+        minikube start --cpus=4 --memory=6g --addons=ingress --force
+      #register: minikube_info
+
+    - name: Minikube status
+      shell: |
+        minikube status
+        alias kubectl="minikube kubectl --"
+        kubectl cluster-info
+
+    - name: Deploy AWX Operator
+      shell: |
+        kustomize build operator | kubectl apply -f -
+      register: deploy_operator
+
+    - name: Deploy AWX Instance
+      shell: |
+        kubectl apply ./awx-instance.yaml
+      register: deploy_instance
+  

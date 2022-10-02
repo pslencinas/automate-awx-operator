@@ -11,7 +11,7 @@ LABEL description="AWX Installation with Ansible"
 LABEL maintainer="Pablo Lencinas <plencina@cisco.com>"
 LABEL version="0.1"
 
-ENV PLAYBOOK=awx-install.yaml
+ENV PLAYBOOK=main.yaml
 ENV TARGET_HOST=test_host
 ENV INVENTORY_FILE=inventory/hosts
 ENV EXTRA_VARS_FILE=extra_vars.yml
