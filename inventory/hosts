@@ -1,0 +1,65 @@
+---
+all:
+  hosts:
+    devnet_xe_sandbox:
+      # Accessible via https://devnetsandbox.cisco.com/RM/Diagram/Index/38ded1f0-16ce-43f2-8df5-43a40ebf752e?diagramType=Topology
+      ansible_host: ios-xe-mgmt-latest.cisco.com
+      ansible_network_os: ios
+      ansible_user: developer
+      ansible_password: C1sco12345
+      ansible_port: 8181
+    svs_e360_asr9001:
+      ansible_host: 10.122.31.70
+      ansible_network_os: iosxr
+      ansible_user: admin
+      ansible_password: cisco.123
+    svs_e360_asr9006:
+      ansible_host: 10.122.31.96
+      ansible_network_os: iosxr
+      ansible_user: vxlan
+      ansible_password: cisco.123
+    svs_e360_asr9912:
+      ansible_host: 10.122.31.35
+      ansible_network_os: iosxr
+      ansible_user: vxlan
+      ansible_password: cisco.123
+    svs_e360_cat9400:
+      ansible_host: 10.122.31.102
+      ansible_network_os: ios
+      ansible_user: vxlan
+      ansible_password: cisco.123
+    svs_e360_asr1002x:
+      ansible_host: 10.122.31.86
+      ansible_network_os: ios
+      ansible_user: vxlan
+      ansible_password: cisco.123
+    svs_e360_nx3064:
+      ansible_host: 10.225.250.185
+      ansible_network_os: nxos
+      ansible_user: admin
+      ansible_password: C1sco123
+    svs_e360_nx9332:
+      ansible_host: 10.225.250.184
+      ansible_network_os: nxos
+      ansible_user: admin
+      ansible_password: C1sco123
+    generic_nxos_device:
+      ansible_host: 11.225.250.184
+      ansible_network_os: nxos
+      ansible_user: admin
+      ansible_password: C1sco123
+    generic_ios_device:
+      ansible_host: 11.225.250.185
+      ansible_network_os: ios
+      ansible_user: admin
+      ansible_password: C1sco123
+    generic_iosxr_device:
+      ansible_host: 11.225.250.186
+      ansible_network_os: iosxr
+      ansible_user: admin
+      ansible_password: C1sco123
+    generic_eos_device:
+      ansible_host: 11.225.250.187
+      ansible_network_os: eos
+      ansible_user: admin
+      ansible_password: C1sco123

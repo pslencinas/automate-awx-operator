@@ -1,0 +1,2 @@
+# Python packages required by AWX
+#ansible == 2.9.10
