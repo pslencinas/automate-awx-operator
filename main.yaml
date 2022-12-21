@@ -2,36 +2,53 @@
 - name: AWX Installation
   hosts: localhost
   connection: local
-  gather_facts: false
   become: yes
 
+  vars:
+    no_proxy: localhost,127.0.0.1,10.96.0.0/12,192.168.59.0/24,192.168.49.0/24,192.168.39.0/24
+  
   tasks:
 
+    - name: Uninstall old Docker versions
+      apt:
+        pkg:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+        update_cache: true
 
     - name: Install required system packages for Docker
       apt:
         pkg:
           - apt-transport-https
           - ca-certificates
-          - software-properties-common
-          - virtualenv
-          - python3-setuptools
+          - curl
+          - gnupg
+          - lsb-release
         state: latest
         update_cache: true
 
-    - name: Add Docker GPG apt key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+    - name: Add Docker's official GPG key
+      shell: |
+        mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
       
     - name: Add Docker Repository
-      apt_repository:
-        repo: "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
-        state: present
+      shell: |
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-    - name: Update apt and install docker-ce
+    - name: Update apt and install docker
       apt:
-        name: docker-ce
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
         state: latest
         update_cache: true
 
@@ -39,14 +56,32 @@
       pip:
         name: docker
 
+    - name: Create the docker group and add user
+      shell: |
+        sudo groupadd docker
+        sudo usermod -aG docker $USER
+      register: docker_user
+
     - name: Start Docker
       shell: |
         systemctl enable docker
         systemctl status docker
       register: docker_status
 
-    - name: Disable swap
-      shell: /usr/sbin/swapoff -a
+    #- name: Disable swap
+    #  shell: /usr/sbin/swapoff -a
+
+    - name: Set NO_PROXY env
+      environment:
+        NO_PROXY: "{{ no_proxy }}"
+
+    - name: Intall kustomize
+      shell: |
+        curl --silent --location --remote-name \
+        "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v4.5.7/kustomize_v4.5.7_linux_amd64.tar.gz" && \
+        tar xzf ./kustomize_v4.5.7_linux_amd64.tar.gz && \
+        chmod a+x kustomize && \
+        sudo mv kustomize /usr/local/bin/kustomize
 
     - name: Download minikube
       get_url:
@@ -55,12 +90,12 @@
         
     - name: Install minikube
       shell: |
-        install minikube-linux-amd64 /usr/local/bin/minikube
+        install /var/tmp/minikube-linux-amd64 /usr/local/bin/minikube
 
     - name: Start a minikube instance
       shell: |
-        minikube start --cpus=4 --memory=6g --addons=ingress --force
-      #register: minikube_info
+        minikube start --cpus=2 --memory=6g --addons=ingress --force
+      register: minikube_info
 
     - name: Minikube status
       shell: |
@@ -75,6 +110,22 @@
 
     - name: Deploy AWX Instance
       shell: |
-        kubectl apply ./awx-instance.yaml
+        kubectl apply -f ./awx-greenmaker.yaml
       register: deploy_instance
+
+    - name: Access AWX portal via tunneling
+      shell: |
+        nohup minikube tunnel &
+
+    - name: Set port forwarding on node port
+      shell: |
+        kubectl -n awx port-forward svc/awx-greenmaker-service --address 0.0.0.0 30080:80 &> /dev/null &
   
+    - name: Get credentials
+      shell: |
+        kubectl get secret awx-admin-password -o jsonpath="{.data.password}" -n awx | base64 --decode
+      register: awx_credential
+
+    - debug:
+        msg: awx_credential
+
