@@ -110,7 +110,7 @@
 
     - name: Deploy AWX Instance
       shell: |
-        kubectl apply -f ./awx-greenmaker.yaml
+        kustomize build . | kubectl apply -f -
       register: deploy_instance
 
     - name: Access AWX portal via tunneling
